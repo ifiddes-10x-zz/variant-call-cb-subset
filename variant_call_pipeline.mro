@@ -1,0 +1,42 @@
+@include "variant_call_pipeline_stages.mro"
+filetype bam;
+filetype vcf;
+filetype csv;
+filetype h5;
+
+
+pipeline VARIANT_CALL_CBS(
+    in bam possorted_bam,
+    in csv barcodes,
+    in csv barnyard,
+    in h5 tree_data,
+    in h5 tracks,
+    in h5 raw_node_profiles,
+    in string reference_path,
+    in string targets_file,
+    in string gatk_path,
+    out vcf variants,
+    out csv barcode_map,
+)
+{
+    call PARSE_INPUTS(
+        tree_data = self.tree_data,
+        barcodes = self.barcodes,
+    )
+    call FILTER_BAM(
+        possorted_bam = self.possorted_bam,
+        barcode_subsets = PARSE_INPUTS.barcode_subsets,
+        targets_file = self.targets_file,
+    )
+    call CALL_SNPINDELS_SUBSET(
+        targets_file = self.targets_file,
+        subset_bams = FILTER_BAM.subset_bams,
+        barcode_subsets = PARSE_INPUTS.barcode_subsets,
+        reference_path = self.reference_path,
+        gatk_path = self.gatk_path,
+    )
+    return (
+        variants = CALL_SNPINDELS_SUBSET.variants,
+        barcode_map = CALL_SNPINDELS_SUBSET.barcode_map,
+    )
+}

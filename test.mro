@@ -1,0 +1,9 @@
+@include "variant_call_pipeline.mro"
+
+call VARIANT_CALL_CBS(
+    possorted_bam = "/mnt/analysis/marsocv/pipestances/H5WHNDMXX/ANALYZER_SINGLECELL_PD/52285/6002.13.0-0/outs/possorted_bam.bam",
+    barcodes = "/mnt/home/ian/yard/evaluate-JeDNA-enrichment/mkn_cbs.csv",
+    targets_file = "/mnt/opt/meowmix_git/targetsets/hg19/idt_xgen_pan_cancer_targs.bed",
+    reference_path = "/mnt/opt/refdata_scdna/hg19-scdna/",
+    variant_mode = "gatk:/mnt/opt/gatk/4.0.0.0/gatk-package-4.0.0.0-local.jar",
+)
