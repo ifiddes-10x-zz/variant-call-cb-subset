@@ -36,11 +36,12 @@ def main(args, outs):
     tmp = martian.make_path('{}.vcf'.format(args.index))  # use index to map name -> barcode set
     ref = os.path.join(args.reference_path, 'fasta', 'genome.fa')
     cmd = ['java', '-jar', args.gatk_path, 'HaplotypeCaller',
-           '-R', ref, '-L', args.reference_path,
-           '-I', args.subset_bam, '-O', tmp]
+           '-R', ref, '-L', args.targets_file,
+           '-I', args.subset_bam, '-O', tmp,
+           '--native-pair-hmm-threads', '1']
     subprocess.check_call(cmd)
     subprocess.check_call(['bgzip', tmp])
-    subprocess.check_call(['tabix', '-p', 'vcf', tmp])
+    subprocess.check_call(['tabix', '-p', 'vcf', tmp + '.gz'])
     outs.subset_variants = tmp + '.gz'
 
 

@@ -1,5 +1,5 @@
 """
-Parses the inputs provided by cellranger-dna and walks the tree, producing barcode sets
+Parses the inputs provided by cellranger-dna and walks the tree, producing barcode sets as input for FILTER_BAM
 
 """
 import martian
@@ -63,6 +63,9 @@ def main(args, outs):
 
 
 def find_all_internal_nodes(root):
+    """
+    Binary search, yields only internal nodes
+    """
     left = root.get_left()
     if left is not None:
         if not left.is_leaf():
