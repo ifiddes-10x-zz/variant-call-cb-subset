@@ -26,7 +26,7 @@ def split(args):
     """
     Perform split
     """
-    return {'chunks': [{'subset_bam':bam, 'index': i} for i, bam in enumerate(args.subset_bams)]}
+    return {'chunks': [{'subset_bam':bam, 'index': i, '__mem_gb': 6} for i, bam in enumerate(args.subset_bams)]}
 
 
 def main(args, outs):

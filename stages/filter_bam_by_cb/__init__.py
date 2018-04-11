@@ -30,7 +30,7 @@ def split(args):
     #    c['__mem_gb'] = 3
     #
     #return {'chunks': chunks, 'join': {'__mem_gb': 6*8, '__threads': 8}}
-    return {'chunks': [{'barcode_subset': x} for x in args.barcode_subsets]}
+    return {'chunks': [{'barcode_subset': x, '__mem_gb': 6} for x in args.barcode_subsets]}
 
 
 def main(args, outs):
