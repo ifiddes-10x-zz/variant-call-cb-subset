@@ -37,7 +37,7 @@ def main(args, outs):
     """
     Given a set of barcodes and a possorted bam, return a new BAM that only contains those barcodes
     """
-    useful_bcs = set(args.barcode_subset)
+    useful_bcs = set(args.barcode_subset.split(','))
 
     bam_h = pysam.Samfile(args.possorted_bam)
     outf_h = pysam.Samfile(outs.subset_bam, 'wb', template=bam_h)

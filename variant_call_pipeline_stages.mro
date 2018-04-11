@@ -7,7 +7,10 @@ filetype h5;
 stage PARSE_INPUTS(
     in csv barcodes,
     in h5 tree_data,
-    out string[] barcode_subsets
+    in csv barnyard,
+    in int min_cells,
+    out string[] barcode_subsets,
+    src py "stages/parse_inputs",
 )
 
 stage FILTER_BAM(

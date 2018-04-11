@@ -9,9 +9,8 @@ pipeline VARIANT_CALL_CBS(
     in bam possorted_bam,
     in csv barcodes,
     in csv barnyard,
+    in int min_cells,
     in h5 tree_data,
-    in h5 tracks,
-    in h5 raw_node_profiles,
     in string reference_path,
     in string targets_file,
     in string gatk_path,
@@ -22,11 +21,12 @@ pipeline VARIANT_CALL_CBS(
     call PARSE_INPUTS(
         tree_data = self.tree_data,
         barcodes = self.barcodes,
+        barnyard = self.barnyard,
+        min_cells = self.min_cells,
     )
     call FILTER_BAM(
         possorted_bam = self.possorted_bam,
         barcode_subsets = PARSE_INPUTS.barcode_subsets,
-        targets_file = self.targets_file,
     )
     call CALL_SNPINDELS_SUBSET(
         targets_file = self.targets_file,
