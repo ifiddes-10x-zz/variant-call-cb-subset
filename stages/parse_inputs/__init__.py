@@ -14,7 +14,10 @@ stage PARSE_INPUTS(
     in h5 tree_data,
     in csv barnyard,
     in int min_cells,
-    out string[] barcode_subsets
+    out string[] barcode_subsets,
+    out string[] cell_ids,
+    out string[] node_ids,
+    src py "stages/parse_inputs",
 )
 """
 
@@ -54,12 +57,21 @@ def main(args, outs):
 
     # now find all barcode subsets
     barcode_subsets = []
+    # record the original cell ID as well
+    cell_ids = []
+    # record the node ID for the final VCF
+    node_ids = []
     for n in find_all_internal_nodes(rootnode):
-        bcs = {barcode_map[x] for x in n.pre_order()}
+        pre_order = n.pre_order()  # find leaves
+        bcs = {barcode_map[x] for x in pre_order}
         if len(bcs) >= args.min_cells:
             barcode_subsets.append(','.join(bcs))
+            cell_ids.append(','.join(map(str, sorted(pre_order))))
+            node_ids.append(str(n.id))
     assert len(barcode_subsets) > 0
     outs.barcode_subsets = barcode_subsets
+    outs.cell_ids = cell_ids
+    outs.node_ids = node_ids
 
 
 def find_all_internal_nodes(root):

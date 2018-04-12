@@ -15,7 +15,7 @@ pipeline VARIANT_CALL_CBS(
     in string targets_file,
     in string gatk_path,
     out vcf variants,
-    out csv barcode_map,
+    out tsv barcode_map,
 )
 {
     call PARSE_INPUTS(
@@ -32,6 +32,8 @@ pipeline VARIANT_CALL_CBS(
         targets_file = self.targets_file,
         subset_bams = FILTER_BAM.subset_bams,
         barcode_subsets = PARSE_INPUTS.barcode_subsets,
+        cell_ids = PARSE_INPUTS.cell_ids,
+        node_ids = PARSE_INPUTS.node_ids,
         reference_path = self.reference_path,
         gatk_path = self.gatk_path,
     )

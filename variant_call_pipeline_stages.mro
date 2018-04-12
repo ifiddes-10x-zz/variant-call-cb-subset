@@ -1,6 +1,7 @@
 filetype bam;
 filetype bam.bai;
 filetype csv;
+filetype tsv;
 filetype vcf;
 filetype h5;
 
@@ -10,6 +11,8 @@ stage PARSE_INPUTS(
     in csv barnyard,
     in int min_cells,
     out string[] barcode_subsets,
+    out string[] cell_ids,
+    out string[] node_ids,
     src py "stages/parse_inputs",
 )
 
@@ -28,10 +31,12 @@ stage CALL_SNPINDELS_SUBSET(
     in string targets_file,
     in bam[] subset_bams,
     in string[] barcode_subsets,
+    in string[] cell_ids,
+    in string[] node_ids,
     in string reference_path,
     in string gatk_path,
     out vcf variants,
-    out csv barcode_map,
+    out tsv barcode_map,
     src py "stages/call_snpindels_subset",
 ) split using(
     in bam subset_bam,

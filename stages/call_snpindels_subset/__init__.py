@@ -10,6 +10,8 @@ stage CALL_SNPINDELS_SUBSET(
     in string targets_file,
     in bam[] subset_bams,
     in string[] barcode_subsets,
+    in string[] cell_ids,
+    in string[] node_ids,
     in string reference_path,
     in string gatk_path,
     out vcf variants,
@@ -26,14 +28,15 @@ def split(args):
     """
     Perform split
     """
-    return {'chunks': [{'subset_bam':bam, 'index': i, '__mem_gb': 6} for i, bam in enumerate(args.subset_bams)]}
+    return {'chunks': [{'subset_bam':bam, 'node_id': n, '__mem_gb': 6} for bam, n in zip(args.subset_bams,
+                                                                                         args.node_ids)]}
 
 
 def main(args, outs):
     """
     Wrapper for GATK
     """
-    tmp = martian.make_path('{}.vcf'.format(args.index))  # use index to map name -> barcode set
+    tmp = martian.make_path('{}.vcf'.format(args.node_id))  # node ID in original tree
     ref = os.path.join(args.reference_path, 'fasta', 'genome.fa')
     cmd = ['java', '-jar', args.gatk_path, 'HaplotypeCaller',
            '-R', ref, '-L', args.targets_file,
@@ -52,8 +55,14 @@ def join(args, outs, chunk_defs, chunk_outs):
     outs.coerce_strings()
     vcfs = [x.subset_variants for x in chunk_outs]
     cmd = ['vcf-merge'] + vcfs
+    #with open(outs.variants, 'w') as outf:
+    tmp = martian.make_path('tmp.vcf')
+    with open(tmp, 'w') as outf:
+        subprocess.check_call(cmd, stdout=outf)
+    # fix the header
+    cmd = ['sed', 's/chnk[0-9A-Za-z-]\+\/files\/\([0-9]\+\)_[0-9]\+/\1/g', tmp]
     with open(outs.variants, 'w') as outf:
         subprocess.check_call(cmd, stdout=outf)
     with open(outs.barcode_map, 'w') as outf:
-        for i, bcodes in enumerate(args.barcode_subsets):
-            outf.write('\t'.join(map(str, [i, ','.join(bcodes)])) + '\n')
+        for node_id, cell_ids, bcodes in zip(args.node_ids, args.cell_ids, args.barcode_subsets):
+            outf.write('\t'.join(map(str, [node_id, cell_ids, bcodes])) + '\n')
