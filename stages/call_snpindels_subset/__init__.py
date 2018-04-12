@@ -3,6 +3,7 @@ This stage is a wrapper for GATK
 """
 import martian
 import os
+import re
 import subprocess
 
 __MRO__ = '''
@@ -60,9 +61,11 @@ def join(args, outs, chunk_defs, chunk_outs):
     with open(tmp, 'w') as outf:
         subprocess.check_call(cmd, stdout=outf)
     # fix the header
-    cmd = ['sed', 's/chnk[0-9A-Za-z-]\+\/files\/\([0-9]\+\)_[0-9]\+/\1/g', tmp]
+    r = re.compile('chnk[0-9A-Za-z-]+\/files\/([0-9]+)_[0-9]+')
     with open(outs.variants, 'w') as outf:
-        subprocess.check_call(cmd, stdout=outf)
+        for l in open(tmp):
+            outf.write(r.sub('\\1', l))
     with open(outs.barcode_map, 'w') as outf:
-        for node_id, cell_ids, bcodes in zip(args.node_ids, args.cell_ids, args.barcode_subsets):
+        for node_id, cell_ids, bcodes in sorted(zip(args.node_ids, args.cell_ids, args.barcode_subsets),
+                                                key=lambda x: int(x[0])):
             outf.write('\t'.join(map(str, [node_id, cell_ids, bcodes])) + '\n')
