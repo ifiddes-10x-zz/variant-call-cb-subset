@@ -6,7 +6,7 @@ call VARIANT_CALL_CBS(
     targets_file = "/mnt/yard2/ian/evaluate-JeDNA-enrichment/cancer_targs.bed",
     reference_path = "/mnt/opt/refdata_scdna/hg19-2.0.0/",
     gatk_path = "/mnt/opt/gatk/4.0.0.0/gatk-package-4.0.0.0-local.jar",
-    min_cells = 10,
+    min_cells = 20,
     barnyard = "/mnt/analysis/marsocv/pipestances/H5WHNDMXX/ANALYZER_SINGLECELL_PD/52285/6002.13.0-0/outs/barnyard.csv",
     tree_data = "/mnt/analysis/marsocv/pipestances/H5WHNDMXX/ANALYZER_SINGLECELL_PD/52285/6002.13.0-0/outs/tree_data.h5",
 )
