@@ -11,7 +11,6 @@ stage PARSE_INPUTS(
     in csv barnyard,
     in int min_cells,
     out string[] barcode_subsets,
-    out string[] cell_ids,
     out string[] node_ids,
     src py "stages/parse_inputs",
 )
@@ -31,7 +30,6 @@ stage CALL_SNPINDELS_SUBSET(
     in string targets_file,
     in bam[] subset_bams,
     in string[] barcode_subsets,
-    in string[] cell_ids,
     in string[] node_ids,
     in string reference_path,
     in string gatk_path,

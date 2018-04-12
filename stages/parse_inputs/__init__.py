@@ -15,7 +15,6 @@ stage PARSE_INPUTS(
     in csv barnyard,
     in int min_cells,
     out string[] barcode_subsets,
-    out string[] cell_ids,
     out string[] node_ids,
     src py "stages/parse_inputs",
 )
@@ -29,7 +28,6 @@ def main(args, outs):
     barnyard_df = pd.read_csv(args.barnyard)
     # extract relevant entries
     cell_df = barnyard_df[barnyard_df['cell_id'] != 'None']
-    barcode_map = {int(x.rsplit('_', 1)[-1]): y for x, y in zip(cell_df.cell_id, cell_df.BC)}
 
     # load the set of barcodes to be investigated
     if args.barcodes is not None:
@@ -48,6 +46,16 @@ def main(args, outs):
     # load the linkage matrix
     Z = load_h5(args.tree_data, "Z").values
 
+    # convert cell IDs to dendrogram IDs
+    T = hierarchy.dendrogram(Z, no_plot=True)
+    pick_cells = map(int, T["ivl"])
+    # invert
+    inv_cells = {x: i for i, x in enumerate(pick_cells)}
+
+    # convert dendrogram IDs to cell barcodes
+    barcode_map = {inv_cells[int(x.rsplit('_', 1)[-1])]: y for x, y in
+                   zip(cell_df.cell_id, cell_df.BC)}
+
     # convert the linkage matrix into a ClusterNode structure
     rootnode, nodelist = hierarchy.to_tree(Z, rd=True)
 
@@ -57,8 +65,6 @@ def main(args, outs):
 
     # now find all barcode subsets
     barcode_subsets = []
-    # record the original cell ID as well
-    cell_ids = []
     # record the node ID for the final VCF
     node_ids = []
     for n in find_all_internal_nodes(rootnode):
@@ -66,11 +72,10 @@ def main(args, outs):
         bcs = {barcode_map[x] for x in pre_order}
         if len(bcs) >= args.min_cells:
             barcode_subsets.append(','.join(bcs))
-            cell_ids.append(','.join(map(str, sorted(pre_order))))
             node_ids.append(str(n.id))
+
     assert len(barcode_subsets) > 0
     outs.barcode_subsets = barcode_subsets
-    outs.cell_ids = cell_ids
     outs.node_ids = node_ids
 
 

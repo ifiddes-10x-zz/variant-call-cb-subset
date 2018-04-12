@@ -11,7 +11,6 @@ stage CALL_SNPINDELS_SUBSET(
     in string targets_file,
     in bam[] subset_bams,
     in string[] barcode_subsets,
-    in string[] cell_ids,
     in string[] node_ids,
     in string reference_path,
     in string gatk_path,
@@ -66,6 +65,5 @@ def join(args, outs, chunk_defs, chunk_outs):
         for l in open(tmp):
             outf.write(r.sub('\\1', l))
     with open(outs.barcode_map, 'w') as outf:
-        for node_id, cell_ids, bcodes in sorted(zip(args.node_ids, args.cell_ids, args.barcode_subsets),
-                                                key=lambda x: int(x[0])):
-            outf.write('\t'.join(map(str, [node_id, cell_ids, bcodes])) + '\n')
+        for node_id, bcodes in sorted(zip(args.node_ids, args.barcode_subsets), key=lambda x: int(x[0])):
+            outf.write('\t'.join(map(str, [node_id, bcodes])) + '\n')
