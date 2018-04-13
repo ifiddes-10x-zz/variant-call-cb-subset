@@ -2,7 +2,7 @@
 
 call VARIANT_CALL_CBS(
     possorted_bam = "/mnt/analysis/marsocy/pipestances/BMVGG/ANALYZER_SINGLECELL_PD/62711/6002.15.1-0/outs/possorted_bam.bam",
-    barcodes = "/mnt/yard2/ian/evaluate-JeDNA-enrichment/mkn_barcodes.txt",
+    barcodes = "/mnt/yard2/ian/evaluate-JeDNA-enrichment/variant-call-cb-subset/mkn_barcodes.txt",
     targets_file = "/mnt/yard2/ian/evaluate-JeDNA-enrichment/cancer_targs.bed",
     reference_path = "/mnt/opt/refdata_scdna/hg19-2.0.0/",
     gatk_path = "/mnt/opt/gatk/4.0.0.0/gatk-package-4.0.0.0-local.jar",
