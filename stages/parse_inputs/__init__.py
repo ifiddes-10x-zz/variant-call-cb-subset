@@ -6,6 +6,7 @@ import martian
 import pandas as pd
 from scipy.cluster import hierarchy
 from crdna.utils import load_h5
+from crdna.clustering import *
 
 
 __MRO__ = """
@@ -28,6 +29,14 @@ def main(args, outs):
     barnyard_df = pd.read_csv(args.barnyard)
     # extract relevant entries
     cell_df = barnyard_df[barnyard_df['cell_id'] != 'None']
+    barcodes = np.array(cell_df['BC'])
+
+    # load the linkage matrix
+    Z = load_h5(args.tree_data, "Z").values
+    desc = get_descendant_matrix(Z)
+
+    # convert the linkage matrix into a ClusterNode structure
+    rootnode, nodelist = hierarchy.to_tree(Z, rd=True)
 
     # load the set of barcodes to be investigated
     if args.barcodes is not None:
@@ -38,38 +47,22 @@ def main(args, outs):
             missing = relevant_barcodes - set(subset_df.BC)
             martian.log_warn('Cell barcodes in whitelist are not cell barcodes:\n{}'.format(', '.join(missing)))
         relevant_cell_ids = {int(x.rsplit('_', 1)[-1]) for x in subset_df.cell_id}
+        relevant_cell_ids = np.array([1 if x in relevant_cell_ids else 0 for x in xrange(desc.shape[0])])
     else:
         # all cells
         relevant_barcodes = None
-        relevant_cell_ids = set(range(len(cell_df)))
-
-    # load the linkage matrix
-    Z = load_h5(args.tree_data, "Z").values
-
-    # convert cell IDs to dendrogram IDs
-    T = hierarchy.dendrogram(Z, no_plot=True)
-    pick_cells = map(int, T["ivl"])
-    # invert
-    inv_cells = {x: i for i, x in enumerate(pick_cells)}
-
-    # convert dendrogram IDs to cell barcodes
-    barcode_map = {inv_cells[int(x.rsplit('_', 1)[-1])]: y for x, y in
-                   zip(cell_df.cell_id, cell_df.BC)}
-
-    # convert the linkage matrix into a ClusterNode structure
-    rootnode, nodelist = hierarchy.to_tree(Z, rd=True)
+        relevant_cell_ids = np.array([1] * desc.shape[0])
 
     # find the root node of our given barcode subset, if it is not None
     if relevant_barcodes is not None:
-        rootnode = find_root_node(nodelist, relevant_cell_ids)
+        rootnode = nodelist[find_root_node(desc, relevant_cell_ids)]
 
     # now find all barcode subsets
-    barcode_subsets = []
+    barcode_subsets = [','.join(barcodes[desc[rootnode.id, :]])]
     # record the node ID for the final VCF
-    node_ids = []
+    node_ids = [str(rootnode.id)]
     for n in find_all_internal_nodes(rootnode):
-        pre_order = n.pre_order()  # find leaves
-        bcs = {barcode_map[x] for x in pre_order}
+        bcs = barcodes[desc[n.id, :]]
         if len(bcs) >= args.min_cells:
             barcode_subsets.append(','.join(bcs))
             node_ids.append(str(n.id))
@@ -97,11 +90,14 @@ def find_all_internal_nodes(root):
             yield n
 
 
-def find_root_node(nodelist, relevant_cell_ids):
-    """
-    Find the lowest common ancestor of relevant_indices
-    """
-    children_sets = {node: set(node.pre_order()) for node in nodelist}
-    relevant_children_sets = {node: s for node, s in children_sets.iteritems()
-                              if len(s & relevant_cell_ids) == len(relevant_cell_ids)}
-    return sorted(relevant_children_sets.iteritems(), key=lambda x: len)[0][0]
+def find_root_node(desc, labels):
+    ncells = desc.shape[1]
+    node_ncell = desc[:, :ncells].sum(axis=1)
+    node_ncell = sorted(enumerate(node_ncell), key=lambda x: x[1], reverse=True)
+    root = -1
+    for node, n in node_ncell:
+        n_label = np.sum(labels[desc[node, :].nonzero()[0]])
+        if n_label == n:
+            root = node
+            break
+    return root if root >= 0 else None
