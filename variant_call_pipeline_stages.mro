@@ -4,6 +4,8 @@ filetype tsv;
 filetype vcf;
 filetype vcf.gz;
 filetype h5;
+filetype bw;
+filetype json;
 
 stage PARSE_INPUTS(
     in csv barcodes,
@@ -37,6 +39,18 @@ stage MERGE_BAMS(
 ) split using(
     in bam node_bams,
     out bam merged_bam,
+)
+
+stage CALCULATE_METRICS(
+    in bam[] merged_bams,
+    in string[] barcode_subsets,
+    in string reference_path,
+    out json metrics,
+    src py "stages/calculate_metrics",
+) split using(
+    in bam merged_bam,
+    in string node_id,
+    out bw results,
 )
 
 stage CALL_SNPINDELS_SUBSET(

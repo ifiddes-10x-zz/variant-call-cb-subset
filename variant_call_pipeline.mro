@@ -4,6 +4,7 @@ filetype vcf;
 filetype vcf.gz;
 filetype csv;
 filetype h5;
+filetype json;
 
 
 pipeline VARIANT_CALL_CBS(
@@ -18,6 +19,7 @@ pipeline VARIANT_CALL_CBS(
     out vcf.gz variants,
     out tsv barcode_map,
     out bam[] merged_bams,
+    out json metrics,
 )
 {
     call PARSE_INPUTS(
@@ -36,6 +38,11 @@ pipeline VARIANT_CALL_CBS(
         subset_bams = FILTER_BAM.subset_bams,
         subset_bam_keys = FILTER_BAM.subset_bam_keys,
     )
+    call CALCULATE_METRICS(
+        merged_bams = MERGE_BAMS.merged_bams,
+        barcode_subsets = PARSE_INPUTS.barcode_subsets,
+        reference_path = self.reference_path,
+    )
     call CALL_SNPINDELS_SUBSET(
         targets_file = self.targets_file,
         merged_bams = MERGE_BAMS.merged_bams,
@@ -48,5 +55,6 @@ pipeline VARIANT_CALL_CBS(
         variants = CALL_SNPINDELS_SUBSET.variants,
         barcode_map = CALL_SNPINDELS_SUBSET.barcode_map,
         merged_bams = MERGE_BAMS.merged_bams,
+        metrics = CALCULATE_METRICS.metrics,
     )
 }
