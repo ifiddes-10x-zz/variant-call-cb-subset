@@ -52,7 +52,8 @@ def main(args, outs):
     cmd = ['java', '-jar', args.gatk_path, 'HaplotypeCaller',
            '-R', ref,
            '-I', args.subset_bam, '-O', tmp,
-           '--native-pair-hmm-threads', str(args.__threads)]
+           '--native-pair-hmm-threads', str(args.__threads),
+           '--TMP_DIR', os.getcwd()]
     if args.locus is None:
         assert args.targets_file is not None
         cmd.extend(['-L', args.targets_file])
