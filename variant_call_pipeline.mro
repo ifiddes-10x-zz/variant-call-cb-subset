@@ -17,6 +17,7 @@ pipeline VARIANT_CALL_CBS(
     in string gatk_path,
     out vcf.gz variants,
     out tsv barcode_map,
+    out bam[] merged_bams,
 )
 {
     call PARSE_INPUTS(
@@ -46,5 +47,6 @@ pipeline VARIANT_CALL_CBS(
     return (
         variants = CALL_SNPINDELS_SUBSET.variants,
         barcode_map = CALL_SNPINDELS_SUBSET.barcode_map,
+        merged_bams = MERGE_BAMS.merged_bams,
     )
 }
