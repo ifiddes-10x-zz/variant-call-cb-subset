@@ -1,0 +1,12 @@
+@include "variant_call_pipeline.mro"
+
+call VARIANT_CALL_CBS(
+    possorted_bam = "/mnt/analysis/marsocy/pipestances/BMVGG/ANALYZER_SINGLECELL_PD/62712/6002.15.5-0/outs/possorted_bam.bam",
+    barcodes = "/mnt/yard2/ian/evaluate-JeDNA-enrichment/variant-call-cb-subset/notebooks/bj_barcodes_wt.txt",
+    targets_file = "/mnt/yard2/ian/evaluate-JeDNA-enrichment/cancer_targs.bed",
+    reference_path = "/mnt/opt/refdata_scdna/hg19-2.0.0/",
+    gatk_path = "/mnt/opt/gatk/4.0.0.0/gatk-package-4.0.0.0-local.jar",
+    min_cells = null,
+    barnyard = "/mnt/analysis/marsocy/pipestances/BMVGG/ANALYZER_SINGLECELL_PD/62712/6002.15.5-0/outs/barnyard.csv",
+    tree_data = "/mnt/analysis/marsocy/pipestances/BMVGG/ANALYZER_SINGLECELL_PD/62712/6002.15.5-0/outs/tree_data.h5",
+)
