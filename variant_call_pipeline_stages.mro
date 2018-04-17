@@ -3,6 +3,7 @@ filetype bam.bai;
 filetype csv;
 filetype tsv;
 filetype vcf;
+filetype vcf.gz;
 filetype h5;
 
 stage PARSE_INPUTS(
@@ -33,10 +34,11 @@ stage CALL_SNPINDELS_SUBSET(
     in string[] node_ids,
     in string reference_path,
     in string gatk_path,
-    out vcf variants,
+    out vcf.gz variants,
     out tsv barcode_map,
     src py "stages/call_snpindels_subset",
 ) split using(
     in bam subset_bam,
+    in string locus,
     out vcf subset_variants,
 )

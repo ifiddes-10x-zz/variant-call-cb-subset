@@ -2,10 +2,11 @@
 This stage is a wrapper for GATK
 """
 import martian
-import shutil
 import os
+import collections
 import subprocess
-
+import longranger.cnv.contig_manager as contig_manager
+import tenkit.tabix as tk_tabix
 __MRO__ = '''
 stage CALL_SNPINDELS_SUBSET(
     in string targets_file,
@@ -19,6 +20,7 @@ stage CALL_SNPINDELS_SUBSET(
     src py "stages/call_snpindels_subset",
 ) split using(
     in bam subset_bam,
+    in string locus,
     out vcf subset_variants,
 )
 '''
@@ -26,10 +28,37 @@ stage CALL_SNPINDELS_SUBSET(
 
 def split(args):
     """
-    Perform split
+    Perform split. If targets_file is set, then no locus split will be applied.
     """
-    return {'chunks': [{'subset_bam':bam, 'node_id': n, '__mem_gb': 8} for bam, n in zip(args.subset_bams,
-                                                                                         args.node_ids)]}
+    if args.targets_file is not None:
+        return {'chunks': [{'subset_bam': bam, 'node_id': n, '__mem_gb': 8} for bam, n in zip(args.subset_bams,
+                                                                                             args.node_ids)]}
+    else:
+        ref = contig_manager.contig_manager(args.reference_path)
+        chunk_size = 5 * 10 ** 7
+        # greedy implementation of the bin packing problem
+        loci = []
+        this_locus = []
+        bin_size = 0
+        for chrom, chrom_length in ref.contig_lengths.iteritems():
+            region_start = 0
+            while region_start < chrom_length:
+                start = region_start
+                end = min(region_start + chunk_size, chrom_length)
+                this_locus.append([chrom, start, end])
+                bin_size += end - start
+                if bin_size >= chunk_size:
+                    loci.append('\n'.join(['\t'.join(map(str, x)) for x in this_locus]) + '\n')
+                    this_locus = []
+                    bin_size = 0
+                region_start = end
+
+        chunks = []
+        for bam, node_id in zip(args.subset_bams, args.node_ids):
+            for locus in loci:
+                chunks.append({'locus': locus, 'subset_bam': bam, 'node_id': node_id,
+                               '__mem_gb': 6 * 6, '__threads': 6})
+        return {'chunks': chunks, 'join': {'__mem_gb': 16}}
 
 
 def main(args, outs):
@@ -39,9 +68,17 @@ def main(args, outs):
     tmp = martian.make_path('tmp.vcf')
     ref = os.path.join(args.reference_path, 'fasta', 'genome.fa')
     cmd = ['java', '-jar', args.gatk_path, 'HaplotypeCaller',
-           '-R', ref, '-L', args.targets_file,
+           '-R', ref,
            '-I', args.subset_bam, '-O', tmp,
-           '--native-pair-hmm-threads', '1']
+           '--native-pair-hmm-threads', str(args.__threads)]
+    if args.locus is None:
+        assert args.targets_file is not None
+        cmd.extend(['-L', args.targets_file])
+    else:
+        bed = martian.make_path('region.bed')
+        with open(bed, 'w') as outf:
+            outf.write(args.locus)
+        cmd.extend(['-L', bed])
     subprocess.check_call(cmd)
 
     # fix the name
@@ -62,16 +99,38 @@ def main(args, outs):
 def join(args, outs, chunk_defs, chunk_outs):
     """
     Merges the variants produced. For this vcf-merge will be used. Also reports a barcode map.
+    If no targets file was produced, first concatenates VCFs across the loci.
     """
     outs.coerce_strings()
-    vcfs = [x.subset_variants for x in chunk_outs]
+
+    if args.targets_file is None:
+        # concatenate VCFs
+        vcfs_by_node = collections.defaultdict(list)
+        for o, d in zip(chunk_outs, chunk_defs):
+            vcfs_by_node[d.node_id].append(o.subset_variants)
+
+        cat_vcfs = {}
+        for node_id, vcfs in vcfs_by_node.iteritems():
+            cmd = ['vcf-concat'] + vcfs
+            tmp_vcf = martian.make_path('{}.vcf'.format(node_id))
+            sorted_vcf = martian.make_path('{}.sorted.vcf'.format(node_id))
+            with open(tmp_vcf, 'w') as outf:
+                subprocess.check_call(cmd, stdout=outf)
+            tk_tabix.sort_vcf(tmp_vcf, sorted_vcf)
+            tk_tabix.index_vcf(sorted_vcf)
+            assert os.path.exists(sorted_vcf + '.gz')
+            cat_vcfs[node_id] = sorted_vcf + '.gz'
+
+        vcfs = [cat_vcfs[x] for x in args.node_ids]
+    else:
+        vcfs = [x.subset_variants for x in chunk_outs]
+
     if len(vcfs) > 1:
         cmd = ['vcf-merge'] + vcfs
         with open(outs.variants, 'w') as outf:
             subprocess.check_call(cmd, stdout=outf)
     else:
-        with open(outs.variants, 'w') as outf:
-            subprocess.check_call(['gzip', '-c', '-d', vcfs[0]], stdout=outf)
+        os.rename(vcfs[0], outs.variants)
 
     with open(outs.barcode_map, 'w') as outf:
         for node_id, bcodes in sorted(zip(args.node_ids, args.barcode_subsets), key=lambda x: int(x[0])):
