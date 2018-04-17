@@ -27,6 +27,7 @@ pipeline VARIANT_CALL_CBS(
     )
     call FILTER_BAM(
         possorted_bam = self.possorted_bam,
+        reference_path = self.reference_path,
         barcode_subsets = PARSE_INPUTS.barcode_subsets,
         node_ids = PARSE_INPUTS.node_ids,
     )

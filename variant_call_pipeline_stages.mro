@@ -17,13 +17,15 @@ stage PARSE_INPUTS(
 
 stage FILTER_BAM(
     in bam possorted_bam,
+    in string reference_path,
     in string[] barcode_subsets,
     in string[] node_ids,
     out bam[] subset_bams,
     out string[] subset_bam_keys,
     src py "stages/filter_bam_by_cb",
 ) split using(
-    in string barcode_subset,
+    in string cluster_bcs,
+    in string[] locus,
     out bam subset_bam,
 )
 

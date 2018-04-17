@@ -5,8 +5,8 @@ import martian
 import os
 import collections
 import subprocess
-import longranger.cnv.contig_manager as contig_manager
 import tenkit.tabix as tk_tabix
+from vclib.locus import build_loci
 __MRO__ = '''
 stage CALL_SNPINDELS_SUBSET(
     in string targets_file,
@@ -34,25 +34,7 @@ def split(args):
         return {'chunks': [{'subset_bam': bam, 'node_id': n, '__mem_gb': 6} for bam, n in zip(args.merged_bams,
                                                                                              args.node_ids)]}
     else:
-        ref = contig_manager.contig_manager(args.reference_path)
-        chunk_size = 5 * 10 ** 7
-        # greedy implementation of the bin packing problem
-        loci = []
-        this_locus = []
-        bin_size = 0
-        for chrom, chrom_length in ref.contig_lengths.iteritems():
-            region_start = 0
-            while region_start < chrom_length:
-                start = region_start
-                end = min(region_start + chunk_size, chrom_length)
-                this_locus.append([chrom, start, end])
-                bin_size += end - start
-                if bin_size >= chunk_size:
-                    loci.append('\n'.join(['\t'.join(map(str, x)) for x in this_locus]) + '\n')
-                    this_locus = []
-                    bin_size = 0
-                region_start = end
-
+        loci = build_loci(args.reference_path)
         chunks = []
         for bam, node_id in zip(args.merged_bams, args.node_ids):
             for locus in loci:
