@@ -10,7 +10,7 @@ import tenkit.tabix as tk_tabix
 __MRO__ = '''
 stage CALL_SNPINDELS_SUBSET(
     in string targets_file,
-    in bam[] subset_bams,
+    in bam[] merged_bams,
     in string[] barcode_subsets,
     in string[] node_ids,
     in string reference_path,
@@ -31,7 +31,7 @@ def split(args):
     Perform split. If targets_file is set, then no locus split will be applied.
     """
     if args.targets_file is not None:
-        return {'chunks': [{'subset_bam': bam, 'node_id': n, '__mem_gb': 8} for bam, n in zip(args.subset_bams,
+        return {'chunks': [{'subset_bam': bam, 'node_id': n, '__mem_gb': 6} for bam, n in zip(args.merged_bams,
                                                                                              args.node_ids)]}
     else:
         ref = contig_manager.contig_manager(args.reference_path)
@@ -54,7 +54,7 @@ def split(args):
                 region_start = end
 
         chunks = []
-        for bam, node_id in zip(args.subset_bams, args.node_ids):
+        for bam, node_id in zip(args.merged_bams, args.node_ids):
             for locus in loci:
                 chunks.append({'locus': locus, 'subset_bam': bam, 'node_id': node_id,
                                '__mem_gb': 6 * 6, '__threads': 6})

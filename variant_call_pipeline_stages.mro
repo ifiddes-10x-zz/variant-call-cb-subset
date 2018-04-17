@@ -1,5 +1,4 @@
 filetype bam;
-filetype bam.bai;
 filetype csv;
 filetype tsv;
 filetype vcf;
@@ -19,17 +18,28 @@ stage PARSE_INPUTS(
 stage FILTER_BAM(
     in bam possorted_bam,
     in string[] barcode_subsets,
+    in string[] node_ids,
     out bam[] subset_bams,
+    out string[] subset_bam_keys,
     src py "stages/filter_bam_by_cb",
 ) split using(
     in string barcode_subset,
     out bam subset_bam,
-    out bam.bai subset_bam_index,
+)
+
+stage MERGE_BAMS(
+    in bam[] subset_bams,
+    in string[] subset_bam_keys,
+    out bam[] merged_bams,
+    src py "stages/merge_subset_bams",
+) split using(
+    in bam node_bams,
+    out bam merged_bam,
 )
 
 stage CALL_SNPINDELS_SUBSET(
     in string targets_file,
-    in bam[] subset_bams,
+    in bam[] merged_bams,
     in string[] barcode_subsets,
     in string[] node_ids,
     in string reference_path,

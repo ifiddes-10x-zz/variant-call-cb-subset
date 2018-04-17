@@ -28,10 +28,15 @@ pipeline VARIANT_CALL_CBS(
     call FILTER_BAM(
         possorted_bam = self.possorted_bam,
         barcode_subsets = PARSE_INPUTS.barcode_subsets,
+        node_ids = PARSE_INPUTS.node_ids,
+    )
+    call MERGE_BAMS(
+        subset_bams = FILTER_BAM.subset_bams,
+        subset_bam_keys = FILTER_BAM.subset_bam_keys,
     )
     call CALL_SNPINDELS_SUBSET(
         targets_file = self.targets_file,
-        subset_bams = FILTER_BAM.subset_bams,
+        merged_bams = MERGE_BAMS.merged_bams,
         barcode_subsets = PARSE_INPUTS.barcode_subsets,
         node_ids = PARSE_INPUTS.node_ids,
         reference_path = self.reference_path,

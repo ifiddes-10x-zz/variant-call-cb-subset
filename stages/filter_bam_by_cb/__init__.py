@@ -1,19 +1,19 @@
 """
 This stage takes a possorted BAM, a list of barcode subsets produced by PARSE_INPUTS,
 """
-import pysam
 import tenkit.bam as tk_bam
 
 __MRO__ = '''
 stage FILTER_BAM(
     in bam possorted_bam,
     in string[] barcode_subsets,
+    in string[] node_ids,
     out bam[] subset_bams,
+    out string[] subset_bam_keys,
     src py "stages/filter_bam_by_cb",
 ) split using(
     in string barcode_subset,
     out bam subset_bam,
-    out bam.bai subset_bam_index,
 )
 '''
 
@@ -22,39 +22,45 @@ def split(args):
     """
     Loads the barcode subsets produced by PARSE_INPUTS and creates a subset job for each set of barcodes
     """
-    # TODO: this will be slow unless I do the below. I don't see an easy way to do this, however.
-    # TODO: I would need to produce nested stages somehow.
-    #bam_in = tk_bam.create_bam_infile(args.possorted_bam)
-    #chunks = tk_bam.chunk_bam_records(bam_in, chunk_bound_key=None, chunk_size_gb=8.0)
-    #for c in chunks:
-    #    c['__mem_gb'] = 3
-    #
-    #return {'chunks': chunks, 'join': {'__mem_gb': 6*8, '__threads': 8}}
-    return {'chunks': [{'barcode_subset': x, '__mem_gb': 6} for x in args.barcode_subsets]}
+    # construct BAM chunks
+    with tk_bam.create_bam_infile(args.possorted_bam) as in_bam:
+        chunks = tk_bam.chunk_bam_records(in_bam, chunk_bound_key=lambda x: (x.tid, x.pos), max_chunks=256)
+    # nest BAM chunks with clusters
+    bc_chunks = []
+    for bc_subset, node_id in zip(args.barcode_subsets, args.node_ids):
+        for c in chunks:
+            bc_chunks.append({'chunk_start': c['chunk_start'], 'chunk_end': c['chunk_end'],
+                              'cluster_bcs': bc_subset, 'node_id': node_id,
+                              '__mem_gb': 6})
+    return {'chunks': bc_chunks}
 
 
 def main(args, outs):
     """
-    Given a set of barcodes and a possorted bam, return a new BAM that only contains those barcodes
+    Given a set of barcodes and a bam chunk, return a new BAM that only contains those barcodes
     """
-    useful_bcs = set(args.barcode_subset.split(','))
+    useful_bcs = set(args.cluster_bcs.split(','))
 
-    bam_h = pysam.Samfile(args.possorted_bam)
-    outf_h = pysam.Samfile(outs.subset_bam, 'wb', template=bam_h)
-    for rec in bam_h:
+    in_bam = tk_bam.create_bam_infile(args.possorted_bam)
+    in_bam_chunk = tk_bam.read_bam_chunk(in_bam, (args.chunk_start, args.chunk_end))
+    out_bam, _ = tk_bam.create_bam_outfile(outs.subset_bam, None, None, template=in_bam)
+
+    for rec in in_bam_chunk:
         try:
             cb = rec.get_tag('CB')
         except KeyError:
             continue
         if cb in useful_bcs:
-            outf_h.write(rec)
-    outf_h.close()
+            out_bam.write(rec)
+    out_bam.close()
     tk_bam.index(outs.subset_bam)
 
 
 def join(args, outs, chunk_defs, chunk_outs):
-    """
-    Returns the set of BAMs produced
-    """
     outs.coerce_strings()
-    outs.subset_bams = [x.subset_bam for x in chunk_outs]
+
+    outs.subset_bam_keys = []
+    outs.subset_bams = []
+    for d, o in zip(chunk_defs, chunk_outs):
+        outs.subset_bam_keys.append(d.node_id)
+        outs.subset_bams.append(o.subset_bam)
