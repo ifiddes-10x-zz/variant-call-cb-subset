@@ -24,7 +24,7 @@ def split(args):
     chunks = []
     for node_id, bams in itertools.groupby(zip(args.subset_bam_keys, args.subset_bams), key=lambda x: x[0]):
         bams = zip(*list(bams))[1]
-        chunks.append({'node_bams': bams, 'node_id': node_id, '__mem_gb': 8*6, '__threads': 8})
+        chunks.append({'node_bams': bams, 'node_id': node_id, '__mem_gb': 12*6, '__threads': 12})
     return {'chunks': chunks}
 
 
