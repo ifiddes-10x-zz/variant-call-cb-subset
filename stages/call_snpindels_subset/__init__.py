@@ -2,6 +2,7 @@
 This stage is a wrapper for GATK
 """
 import martian
+import shutil
 import os
 import subprocess
 
@@ -64,9 +65,14 @@ def join(args, outs, chunk_defs, chunk_outs):
     """
     outs.coerce_strings()
     vcfs = [x.subset_variants for x in chunk_outs]
-    cmd = ['vcf-merge'] + vcfs
-    with open(outs.variants, 'w') as outf:
-        subprocess.check_call(cmd, stdout=outf)
+    if len(vcfs) > 1:
+        cmd = ['vcf-merge'] + vcfs
+        with open(outs.variants, 'w') as outf:
+            subprocess.check_call(cmd, stdout=outf)
+    else:
+        with open(outs.variants, 'w') as outf:
+            subprocess.check_call(['gzip', '-c', '-d', vcfs[0]], stdout=outf)
+
     with open(outs.barcode_map, 'w') as outf:
         for node_id, bcodes in sorted(zip(args.node_ids, args.barcode_subsets), key=lambda x: int(x[0])):
             outf.write('\t'.join(map(str, [node_id, bcodes])) + '\n')

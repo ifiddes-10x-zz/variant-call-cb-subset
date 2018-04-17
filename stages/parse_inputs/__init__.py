@@ -61,11 +61,12 @@ def main(args, outs):
     barcode_subsets = [','.join(barcodes[desc[rootnode.id, :]])]
     # record the node ID for the final VCF
     node_ids = [str(rootnode.id)]
-    for n in find_all_internal_nodes(rootnode):
-        bcs = barcodes[desc[n.id, :]]
-        if len(bcs) >= args.min_cells:
-            barcode_subsets.append(','.join(bcs))
-            node_ids.append(str(n.id))
+    if args.min_cells is not None:
+        for n in find_all_internal_nodes(rootnode):
+            bcs = barcodes[desc[n.id, :]]
+            if len(bcs) >= args.min_cells:
+                barcode_subsets.append(','.join(bcs))
+                node_ids.append(str(n.id))
 
     assert len(barcode_subsets) > 0
     outs.barcode_subsets = barcode_subsets
