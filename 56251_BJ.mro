@@ -1,0 +1,11 @@
+@include "metrics_pipeline.mro"
+
+call FIND_METRICS(
+    possorted_bam = "/mnt/analysis/marsoc/pipestances/H7Y35DMXX/ANALYZER_SINGLECELL_PD/56251/HEAD/outs/possorted_bam.bam",
+    barcodes = null,
+    reference_path = "/mnt/opt/refdata_scdna/hg19-scdna/",
+    min_cells = 25,
+    mappable_regions = "/mnt/analysis/marsoc/pipestances/H7Y35DMXX/ANALYZER_SINGLECELL_PD/56251/HEAD/outs/mappable_regions.bed",
+    barnyard = "/mnt/analysis/marsoc/pipestances/H7Y35DMXX/ANALYZER_SINGLECELL_PD/56251/HEAD/outs/barnyard.csv",
+    tree_data = "/mnt/analysis/marsoc/pipestances/H7Y35DMXX/ANALYZER_SINGLECELL_PD/56251/HEAD/outs/tree_data.h5",
+)

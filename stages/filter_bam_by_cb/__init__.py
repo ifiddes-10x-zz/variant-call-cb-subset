@@ -10,6 +10,7 @@ stage FILTER_BAM(
     in string reference_path,
     in string[] barcode_subsets,
     in string[] node_ids,
+    in int locus_split_bases,
     out bam[] subset_bams,
     out string[] subset_bam_keys,
     src py "stages/filter_bam_by_cb",

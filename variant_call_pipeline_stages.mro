@@ -32,6 +32,17 @@ stage FILTER_BAM(
     out bam subset_bam,
 )
 
+stage FILTER_BAM_NO_SPLIT(
+    in bam possorted_bam,
+    in string reference_path,
+    in string[] barcode_subsets,
+    out bam[] subset_bams,
+    src py "stages/filter_bam_no_split",
+) split using(
+    in string cluster_bcs,
+    out bam subset_bam,
+)
+
 stage MERGE_BAMS(
     in bam[] subset_bams,
     in string[] subset_bam_keys,

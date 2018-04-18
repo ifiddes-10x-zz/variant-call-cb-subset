@@ -1,0 +1,42 @@
+@include "variant_call_pipeline_stages.mro"
+filetype bam;
+filetype bed;
+filetype vcf;
+filetype vcf.gz;
+filetype csv;
+filetype h5;
+filetype json;
+
+
+pipeline FIND_METRICS(
+    in bam possorted_bam,
+    in csv barcodes,
+    in csv barnyard,
+    in bed mappable_regions,
+    in int min_cells,
+    in h5 tree_data,
+    in string reference_path,
+    out json metrics,
+)
+{
+    call PARSE_INPUTS(
+        tree_data = self.tree_data,
+        barcodes = self.barcodes,
+        barnyard = self.barnyard,
+        min_cells = self.min_cells,
+    )
+    call FILTER_BAM_NO_SPLIT(
+        possorted_bam = self.possorted_bam,
+        reference_path = self.reference_path,
+        barcode_subsets = PARSE_INPUTS.barcode_subsets,
+    )
+    call CALCULATE_METRICS(
+        merged_bams = FILTER_BAM_NO_SPLIT.subset_bams,
+        mappable_regions = self.mappable_regions,
+        node_ids = PARSE_INPUTS.node_ids,
+        reference_path = self.reference_path,
+    )
+    return (
+        metrics = CALCULATE_METRICS.metrics,
+    )
+}
