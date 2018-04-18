@@ -66,9 +66,11 @@ def join(args, outs, chunk_defs, chunk_outs):
             r = r.split('\n')[:-1]
             breadth = 0
             for l in r:
+                if '#' in l or '=' in l:  # remove wiggle format info lines
+                    continue
                 try:
                     chrom, start, stop, _ = l.split()
-                except:
+                except ValueError:
                     continue
                 breadth += int(stop) - int(start)
             per_chrom['breadth'][chrom] = breadth
