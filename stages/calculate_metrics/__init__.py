@@ -96,6 +96,6 @@ def join(args, outs, chunk_defs, chunk_outs):
             tot_breadth += breadth
         results[d.node_id]['per_chromosome'] = per_chrom
         results[d.node_id]['genome_breadth'] = tot_breadth
-        results[d.node_id]['breadth_fraction'] = 1.0 * tot_breadth / sum(ref.contig_lengths.values())
+        results[d.node_id]['breadth_fraction'] = 1.0 * tot_breadth / sum(chrom_lengths.values())
     with open(outs.metrics, 'w') as outf:
         json.dump(results, outf)
