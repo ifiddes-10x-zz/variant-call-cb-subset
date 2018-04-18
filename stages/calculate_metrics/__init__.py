@@ -15,7 +15,7 @@ import longranger.cnv.contig_manager as contig_manager
 __MRO__ = """
 stage CALCULATE_METRICS(
     in bam[] merged_bams,
-    in string[] barcode_subsets,
+    in string[] node_ids,
     in string reference_path,
     out json metrics,
     src py "stages/calculate_metrics",
@@ -46,33 +46,36 @@ def join(args, outs, chunk_defs, chunk_outs):
     ref = contig_manager.contig_manager(args.reference_path)
     # I am doing this in a hacky wiggletools way because it is fast
     results = collections.defaultdict(dict)
-    for chunk in chunk_outs:
+    for c, d in zip(chunk_outs, chunk_defs):
         # whole genome metrics
         for metric in ['meanI', 'varI', 'CVI']:
-            r, _ = subprocess.Popen(['wiggletools', metric, chunk.results], stdout=subprocess.PIPE).communicate()
-            results[chunk.node_id][metric] = float(r.rstrip())
+            r, _ = subprocess.Popen(['wiggletools', metric, c.results], stdout=subprocess.PIPE).communicate()
+            results[d.node_id][metric] = float(r.rstrip())
         # per chromosome
         per_chrom = collections.defaultdict(dict)
         tot_breadth = 0
         for chrom, chrom_length in ref.contig_lengths.iteritems():
             for metric in ['meanI', 'varI', 'CVI']:
                 cmd = 'wiggletools seek {} 0 {} {} | wiggletools {} - '.format(chrom, chrom_length,
-                                                                               chunk.results, metric)
+                                                                               c.results, metric)
                 r, _ = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True).communicate()
                 per_chrom[metric][chrom] = float(r.rstrip())
             # calculate breadth, parsing in python
-            cmd = 'wiggletools seek {} 0 {} {} | wiggletools unit - '.format(chrom, chrom_length, chunk.results)
+            cmd = 'wiggletools seek {} 0 {} {} | wiggletools unit - '.format(chrom, chrom_length, c.results)
             r, _ = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True).communicate()
             r = r.split('\n')[:-1]
             breadth = 0
             for l in r:
-                l = l.split()
-                breadth += int(l[2]) - int(l[1])
+                try:
+                    chrom, start, stop, _ = l.split()
+                except:
+                    continue
+                breadth += int(stop) - int(start)
             per_chrom['breadth'][chrom] = breadth
             per_chrom['breadth_frac'][chrom] = 1.0 * breadth / chrom_length
             tot_breadth += breadth
-        results[chunk.node_id]['per_chromosome'] = per_chrom
-        results[chunk.node_id]['genome_breadth'] = tot_breadth
-        results[chunk.node_id]['breadth_fraction'] = 1.0 * tot_breadth / sum(ref.contig_lengths.values())
+        results[d.node_id]['per_chromosome'] = per_chrom
+        results[d.node_id]['genome_breadth'] = tot_breadth
+        results[d.node_id]['breadth_fraction'] = 1.0 * tot_breadth / sum(ref.contig_lengths.values())
     with open(outs.metrics, 'w') as outf:
         json.dump(results, outf)

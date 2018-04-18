@@ -43,7 +43,7 @@ stage MERGE_BAMS(
 
 stage CALCULATE_METRICS(
     in bam[] merged_bams,
-    in string[] barcode_subsets,
+    in string[] node_ids,
     in string reference_path,
     out json metrics,
     src py "stages/calculate_metrics",
