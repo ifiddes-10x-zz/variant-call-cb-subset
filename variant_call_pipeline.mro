@@ -18,7 +18,6 @@ pipeline VARIANT_CALL_CBS(
     in string gatk_path,
     out vcf.gz variants,
     out tsv barcode_map,
-    out bam[] merged_bams,
     out json metrics,
 )
 {
@@ -40,7 +39,7 @@ pipeline VARIANT_CALL_CBS(
     )
     call CALCULATE_METRICS(
         merged_bams = MERGE_BAMS.merged_bams,
-        barcode_subsets = PARSE_INPUTS.barcode_subsets,
+        node_ids = PARSE_INPUTS.node_ids,
         reference_path = self.reference_path,
     )
     call CALL_SNPINDELS_SUBSET(
@@ -54,7 +53,6 @@ pipeline VARIANT_CALL_CBS(
     return (
         variants = CALL_SNPINDELS_SUBSET.variants,
         barcode_map = CALL_SNPINDELS_SUBSET.barcode_map,
-        merged_bams = MERGE_BAMS.merged_bams,
         metrics = CALCULATE_METRICS.metrics,
     )
 }
