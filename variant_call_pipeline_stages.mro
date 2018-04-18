@@ -1,4 +1,5 @@
 filetype bam;
+filetype bed;
 filetype csv;
 filetype tsv;
 filetype vcf;
@@ -43,6 +44,7 @@ stage MERGE_BAMS(
 
 stage CALCULATE_METRICS(
     in bam[] merged_bams,
+    in bed mappable_regions,
     in string[] node_ids,
     in string reference_path,
     out json metrics,

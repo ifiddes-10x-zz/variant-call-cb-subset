@@ -1,5 +1,6 @@
 @include "variant_call_pipeline_stages.mro"
 filetype bam;
+filetype bed;
 filetype vcf;
 filetype vcf.gz;
 filetype csv;
@@ -11,6 +12,7 @@ pipeline VARIANT_CALL_CBS(
     in bam possorted_bam,
     in csv barcodes,
     in csv barnyard,
+    in bed mappable_regions,
     in int min_cells,
     in h5 tree_data,
     in string reference_path,
@@ -39,6 +41,7 @@ pipeline VARIANT_CALL_CBS(
     )
     call CALCULATE_METRICS(
         merged_bams = MERGE_BAMS.merged_bams,
+        mappable_regions = self.mappable_regions,
         node_ids = PARSE_INPUTS.node_ids,
         reference_path = self.reference_path,
     )

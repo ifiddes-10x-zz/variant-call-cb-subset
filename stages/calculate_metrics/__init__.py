@@ -7,6 +7,7 @@ metrics:
 3. DPCV (CVI)
 4. Breadth of coverage (Number of bases in genome with a read covering)
 """
+import martian
 import collections
 import json
 import subprocess
@@ -15,6 +16,7 @@ import longranger.cnv.contig_manager as contig_manager
 __MRO__ = """
 stage CALCULATE_METRICS(
     in bam[] merged_bams,
+    in bed mappable_regions,
     in string[] node_ids,
     in string reference_path,
     out json metrics,
@@ -34,16 +36,32 @@ def split(args):
 
 def main(args, outs):
     """
-    Produces a bigWig format depth vector
+    Produces a bigWig format depth vector over the mappable regions.
     """
-    cmd = ['bamCoverage', '-b', args.subset_bam, '-o', outs.results,
+    # construct a BED to be the blacklist -- this is the complement of the mappable regions
+    blacklist = martian.make_path('blacklist.bed')
+    genome_file = martian.make_path('genome_sizes.txt')
+    ref = contig_manager.contig_manager(args.reference_path)
+    with open(genome_file, 'w') as outf:
+        for chrom, chrom_length in sorted(ref.contig_lengths.iteritems(), key=lambda x: (x[0], x[1])):
+            outf.write('\t'.join(map(str, [chrom, chrom_length])) + '\n')
+    with open(blacklist, 'w') as outf:
+        cmd = ['bedtools', 'complement', '-i', args.mappable_regions, '-g', genome_file]
+        subprocess.check_call(cmd, stdout=outf)
+    cmd = ['bamCoverage', '-b', args.subset_bam, '-o', outs.results, '-bl', blacklist,
            '-bs', '1', '--ignoreDuplicates', '-p', str(args.__threads)]
     subprocess.check_call(cmd)
 
 
 def join(args, outs, chunk_defs, chunk_outs):
     outs.coerce_strings()
-    ref = contig_manager.contig_manager(args.reference_path)
+
+    # load the BED to define mappable regions
+    bed_recs = [x.split() for x in open(args.mappable_regions)]
+    chrom_lengths = collections.defaultdict(int)
+    for chrom, start, stop in bed_recs:
+        chrom_lengths[chrom] += int(stop) - int(start)
+
     # I am doing this in a hacky wiggletools way because it is fast
     results = collections.defaultdict(dict)
     for c, d in zip(chunk_outs, chunk_defs):
@@ -54,7 +72,7 @@ def join(args, outs, chunk_defs, chunk_outs):
         # per chromosome
         per_chrom = collections.defaultdict(dict)
         tot_breadth = 0
-        for chrom, chrom_length in ref.contig_lengths.iteritems():
+        for chrom, chrom_length in chrom_lengths.iteritems():
             for metric in ['meanI', 'varI', 'CVI']:
                 cmd = 'wiggletools seek {} 0 {} {} | wiggletools {} - '.format(chrom, chrom_length,
                                                                                c.results, metric)
