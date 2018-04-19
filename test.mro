@@ -7,6 +7,7 @@ call VARIANT_CALL_CBS(
     reference_path = "/mnt/opt/refdata_scdna/hg19-2.0.0/",
     gatk_path = "/mnt/opt/gatk/4.0.0.0/gatk-package-4.0.0.0-local.jar",
     min_cells = null,
+    mappable_regions = "/mnt/analysis/marsocy/pipestances/HCC5TDMXX/ANALYZER_SINGLECELL_PD/61374/6002.15.1-0/outs/mappable_regions.bed",
     barnyard = "/mnt/analysis/marsocy/pipestances/HCC5TDMXX/ANALYZER_SINGLECELL_PD/61374/6002.15.1-0/outs/barnyard.csv",
     tree_data = "/mnt/analysis/marsocy/pipestances/HCC5TDMXX/ANALYZER_SINGLECELL_PD/61374/6002.15.1-0/outs/tree_data.h5",
 )
